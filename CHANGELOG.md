@@ -2,6 +2,8 @@
 
 ## À venir
 
+## 1.0.3 — 20 novembre 2026
+
 - Corrige le plantage au démarrage
 
 ## 1.0.2 — 19 novembre 2026
