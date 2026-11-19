@@ -1,0 +1,120 @@
+name: Build Wawa TV (iPhone)
+
+# À chaque push sur main (sauf [skip ci]), ou à la main depuis l'onglet Actions
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  ios:
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Numéro de version (1.0.<n° de build>)
+        run: node -e "const f='app.json';const a=require('./'+f);a.expo.version='1.0.${{ github.run_number }}';a.expo.ios.buildNumber='${{ github.run_number }}';require('fs').writeFileSync(f,JSON.stringify(a,null,2))"
+      - name: Génère le projet iOS
+        run: npx expo prebuild --platform ios --no-install --clean
+      - name: Installe les pods
+        working-directory: ios
+        run: pod install
+      - name: Compile l'app (non signée)
+        run: |
+          xcodebuild \
+            -workspace ios/WawaTV.xcworkspace \
+            -scheme WawaTV \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            > xcodebuild.log 2>&1 || {
+              grep -E "error:|\*\* BUILD FAILED" xcodebuild.log | sort -u | head -30 | while IFS= read -r l; do echo "::error::$l"; done
+              tail -n 80 xcodebuild.log
+              exit 1
+            }
+          tail -n 20 xcodebuild.log
+      - name: Emballe l'IPA (à resigner avec SideStore / FlareStore / Sideloadly)
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/WawaTV.app Payload/
+          zip -qry wawa-tv-unsigned.ipa Payload
+          size=$(stat -f %z wawa-tv-unsigned.ipa)
+          echo "IPA : $size octets"
+          if [ "$size" -lt 5000000 ]; then echo "::error::IPA anormalement petite ($size octets)"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: wawa-tv-unsigned.ipa
+
+  release:
+    needs: ios
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios
+      - name: Notes de version (section « À venir » du CHANGELOG)
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          node scripts/changelog.mjs notes > notes.md
+          if [ ! -s notes.md ]; then printf '%s\n' "$COMMIT_MSG" | grep -viE '^(Co-Authored-By|Claude-Session)' | sed '/^$/d' | head -8 > notes.md; fi
+          { echo 'RELEASE_NOTES<<WAWA_EOF'; cat notes.md; echo; echo 'WAWA_EOF'; } >> "$GITHUB_ENV"
+      - name: Source FlareStore / SideStore
+        run: node scripts/make-source.mjs "1.0.${{ github.run_number }}" "build-${{ github.run_number }}" wawa-tv-unsigned.ipa
+      - name: Texte de la Release
+        run: |
+          {
+            echo "## Wawa TV 1.0.${{ github.run_number }}"
+            echo
+            cat notes.md
+            echo
+            echo "---"
+            echo "Source FlareStore / SideStore : https://github.com/${{ github.repository }}/releases/latest/download/altstore.json"
+            echo "Ou installe wawa-tv-unsigned.ipa avec Sideloadly / SideStore."
+          } > body.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Wawa TV 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body_path: body.md
+          files: |
+            wawa-tv-unsigned.ipa
+            altstore.json
+      - name: Range les notes sous le numéro de version
+        run: |
+          git fetch -q origin main && git checkout -q main && git reset -q --hard origin/main
+          node scripts/changelog.mjs stamp "1.0.${{ github.run_number }}"
+          if git diff --quiet CHANGELOG.md; then exit 0; fi
+          git config user.name "wawa-bot"
+          git config user.email "wawa-bot@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "Notes de version 1.0.${{ github.run_number }} [skip ci]"
+          git push -q origin HEAD:main

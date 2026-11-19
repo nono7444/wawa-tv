@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Wawa TV",
+    "slug": "wawa-tv",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "wawatv",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "lol.wawanono.wawatv",
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-splash-screen", { "backgroundColor": "#0E0B16", "image": "./assets/images/splash-icon.png", "imageWidth": 120 }],
+      ["expo-build-properties", { "ios": { "deploymentTarget": "16.4" } }],
+      ["expo-video", { "supportsBackgroundPlayback": true, "supportsPictureInPicture": true }],
+      "expo-screen-orientation"
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}
