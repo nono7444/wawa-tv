@@ -2,9 +2,12 @@
 
 ## À venir
 
+## 1.0.4 — 20 novembre 2026
+
 - Connexion à ton compte Twitch (par code) : tes chaînes suivies et l’envoi de messages dans le chat
 - Le lecteur explique pourquoi chaque proxy a échoué (touche le badge rouge)
 - Le test des proxys affiche la vraie erreur ; délai par proxy porté à 8 s
+
 ## 1.0.3 — 20 novembre 2026
 
 - Corrige le plantage au démarrage
