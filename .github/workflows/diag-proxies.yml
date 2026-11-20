@@ -18,7 +18,9 @@ jobs:
             a=$(curl -s -m 10 -o a.txt -w '%{http_code}' "$u"); ha=$(head -c 7 a.txt | tr -d '\n')
             b=$(curl -s -m 10 -o b.txt -w '%{http_code}' -H 'Origin: https://www.twitch.tv' -H 'Referer: https://www.twitch.tv/' -H 'User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' "$u"); hb=$(head -c 7 b.txt | tr -d '\n')
             echo "$host | sans en-têtes: $a $ha | avec en-têtes: $b $hb"
-            echo "  extrait: $(head -c 160 b.txt | tr '\n' ' ')"
+            c=$(curl -s -m 10 -o c.txt -w '%{http_code}' -A 'WawaTV/1 CFNetwork/3826.500.111 Darwin/25.0.0' "$u&_=$(date +%s%3N)"); hc=$(head -c 7 c.txt | tr -d '\n')
+            d=$(curl -s -m 10 -o d.txt -w '%{http_code}' -A 'WawaTV/1 CFNetwork/3826.500.111 Darwin/25.0.0' "$u"); hd=$(head -c 7 d.txt | tr -d '\n')
+            echo "  appli (UA iPhone + _=): $c $hc | UA iPhone seul: $d $hd | extrait: $(head -c 100 c.txt | tr '\n' ' ')"
           done
           echo "--- 1re ligne de variante (avec en-têtes, dernier proxy OK) ---"
           grep -m2 -v '^#' b.txt || true
