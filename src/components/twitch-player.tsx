@@ -19,6 +19,7 @@ export function TwitchPlayer({ login, title, compact, muted, onToggleMute }: Pro
   const [loading, setLoading] = useState(true);
   const [quality, setQuality] = useState('Auto');
   const [menu, setMenu] = useState(false);
+  const [why, setWhy] = useState(false);
   const [restart, setRestart] = useState(0);
   const settingsRef = useRef(s);
   settingsRef.current = s;
@@ -111,10 +112,13 @@ export function TwitchPlayer({ login, title, compact, muted, onToggleMute }: Pro
 
       <View style={styles.bar}>
         {pb ? (
-          <View style={[styles.badge, { backgroundColor: pb.viaProxy ? 'rgba(48,209,88,0.85)' : 'rgba(255,69,58,0.85)' }]}>
+          <Pressable
+            onPress={() => pb.failures.length && setWhy(true)}
+            style={[styles.badge, { backgroundColor: pb.viaProxy ? 'rgba(48,209,88,0.85)' : 'rgba(255,69,58,0.85)' }]}>
             <Ionicons name={pb.viaProxy ? 'shield-checkmark' : 'shield-outline'} size={11} color="#fff" />
             <Text style={styles.badgeText}>{compact ? (pb.viaProxy ? 'Proxy' : 'Twitch') : pb.source}</Text>
-          </View>
+            {pb.failures.length ? <Ionicons name="information-circle" size={12} color="#fff" /> : null}
+          </Pressable>
         ) : null}
         <View style={{ flex: 1 }} />
         {onToggleMute ? (
@@ -134,6 +138,20 @@ export function TwitchPlayer({ login, title, compact, muted, onToggleMute }: Pro
           <Ionicons name="refresh" size={16} color="#fff" />
         </Pressable>
       </View>
+
+      <Modal visible={why} transparent animationType="fade" onRequestClose={() => setWhy(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setWhy(false)}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Proxys essayés pour {login}</Text>
+            {pb?.failures.map((f) => (
+              <Text key={f} style={[styles.rowText, { paddingVertical: 6, color: C.textDim }]}>
+                {f}
+              </Text>
+            ))}
+            <Text style={{ color: C.textFaint, fontSize: 12, marginTop: 10 }}>Fais une capture de cet écran et envoie-la pour qu’on corrige.</Text>
+          </View>
+        </Pressable>
+      </Modal>
 
       <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenu(false)}>

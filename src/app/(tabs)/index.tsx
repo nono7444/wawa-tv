@@ -5,6 +5,7 @@ import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChannelRow, Empty, ScreenTitle, StreamCard } from '@/components/cards';
+import { twitchFollows, useAuth } from '@/lib/auth';
 import { useSettings } from '@/lib/store';
 import { C } from '@/lib/theme';
 import { channels, type Channel } from '@/lib/twitch';
@@ -12,6 +13,7 @@ import { channels, type Channel } from '@/lib/twitch';
 /** Chaînes suivies (gardées sur le téléphone, sans compte Twitch) : les directs d'abord. */
 export default function Following() {
   const { s } = useSettings();
+  const { session, helix } = useAuth();
   const [list, setList] = useState<Channel[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -19,11 +21,20 @@ export default function Following() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setList(s.follows.length ? await channels(s.follows) : []);
+      // Chaînes suivies dans l'appli + celles de ton compte Twitch
+      let logins = [...s.follows];
+      if (session) {
+        try {
+          logins = [...new Set([...logins, ...(await twitchFollows(helix, session.userId))])];
+        } catch (e: any) {
+          setError(e?.message ?? String(e));
+        }
+      }
+      setList(logins.length ? await channels(logins) : []);
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
-  }, [s.follows]);
+  }, [s.follows, session, helix]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,8 +80,8 @@ export default function Following() {
             <Empty icon="cloud-offline-outline" text={`Impossible de joindre Twitch : ${error}`} />
           ) : list === null ? (
             <Empty loading text="Chargement…" />
-          ) : !s.follows.length ? (
-            <Empty icon="heart-outline" text={'Tu ne suis encore personne.\nCherche une chaîne et touche « Suivre ».'} />
+          ) : !list.length ? (
+            <Empty icon="heart-outline" text={'Tu ne suis encore personne.\nCherche une chaîne et touche « Suivre », ou connecte ton compte Twitch dans Réglages.'} />
           ) : (
             <Empty icon="moon-outline" text="Aucune chaîne suivie n'est en direct." />
           )

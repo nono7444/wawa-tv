@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenTitle } from '@/components/cards';
 import { Row, Section, Stepper, SwitchRow } from '@/components/rows';
+import { useAuth } from '@/lib/auth';
 import { useSettings } from '@/lib/store';
 import { C } from '@/lib/theme';
 
 export default function Settings() {
   const { s, set } = useSettings();
+  const { session } = useAuth();
   const active = s.proxies.filter((p) => p.enabled).length;
   const hiddenCount = s.hidden.channels.length + s.hidden.categories.length + s.hidden.keywords.length;
 
@@ -17,6 +19,10 @@ export default function Settings() {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <ScreenTitle>Réglages</ScreenTitle>
+
+        <Section title="Compte" footer="Connecte ton compte pour retrouver tes chaînes suivies sur Twitch et écrire dans le chat.">
+          <Row icon="person-circle-outline" label="Compte Twitch" value={session ? session.login : 'Non connecté'} onPress={() => router.push('/login')} />
+        </Section>
 
         <Section title="Lecture sans pubs" footer="Les directs passent par des proxys en Europe, où Twitch ne met pas de pubs. Si aucun ne répond, Wawa TV revient au lecteur officiel (avec pubs).">
           <SwitchRow icon="shield-checkmark-outline" label="Utiliser les proxys" value={s.proxyOn} onChange={(v) => set({ proxyOn: v })} />
@@ -41,7 +47,7 @@ export default function Settings() {
           />
         </Section>
 
-        <Section title="Chaînes suivies" footer="Tes chaînes suivies sont gardées sur ce téléphone, sans compte Twitch.">
+        <Section title="Chaînes suivies" footer="Chaînes ajoutées dans l’appli, gardées sur ce téléphone (en plus de celles de ton compte Twitch).">
           <Row icon="heart-outline" label="Chaînes suivies" value={String(s.follows.length)} />
           <Row
             icon="trash-outline"

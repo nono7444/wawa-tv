@@ -59,7 +59,7 @@ export default function Proxies() {
         <Row
           icon="timer-outline"
           label="Délai par proxy"
-          right={<Stepper value={`${s.timeoutMs / 1000} s`} onMinus={() => set({ timeoutMs: Math.max(2000, s.timeoutMs - 1000) })} onPlus={() => set({ timeoutMs: Math.min(10000, s.timeoutMs + 1000) })} />}
+          right={<Stepper value={`${s.timeoutMs / 1000} s`} onMinus={() => set({ timeoutMs: Math.max(2000, s.timeoutMs - 1000) })} onPlus={() => set({ timeoutMs: Math.min(15000, s.timeoutMs + 1000) })} />}
         />
         <Row icon="speedometer-outline" label="Tester les proxys actifs" onPress={testing ? undefined : runTest} right={testing ? <ActivityIndicator color={C.accent} /> : undefined} />
       </Section>
@@ -75,7 +75,8 @@ export default function Proxies() {
               </Text>
               {p.lastTest ? (
                 <Text style={{ color: p.lastTest.ok ? C.success : C.danger, fontSize: 11.5, marginTop: 2 }}>
-                  {p.lastTest.ok ? `OK · ${p.lastTest.ms} ms` : `Échec · ${p.lastTest.ms} ms`}
+                  {p.lastTest.ok ? `OK · ${p.lastTest.ms} ms` : `Échec · ${p.lastTest.error ?? ''}`}
+                  {p.lastTest.channel ? ` · test sur ${p.lastTest.channel}` : ''}
                 </Text>
               ) : null}
             </View>
@@ -113,7 +114,7 @@ export default function Proxies() {
           onPress={() =>
             Alert.alert('Remettre les proxys par défaut ?', 'Tes proxys ajoutés seront supprimés.', [
               { text: 'Annuler', style: 'cancel' },
-              { text: 'Remettre', style: 'destructive', onPress: () => set({ proxies: DEFAULT_PROXIES, timeoutMs: 4000, fallback: true }) },
+              { text: 'Remettre', style: 'destructive', onPress: () => set({ proxies: DEFAULT_PROXIES, timeoutMs: 8000, fallback: true }) },
             ])
           }
         />

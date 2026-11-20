@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import type { Stream } from './twitch';
 
-export type Proxy = { id: string; name: string; url: string; enabled: boolean; lastTest?: { ok: boolean; ms: number; at: number } };
+export type Proxy = { id: string; name: string; url: string; enabled: boolean; lastTest?: { ok: boolean; ms: number; at: number; error?: string; channel?: string } };
 
 const P = 'allow_source=true&allow_audio_only=true&fast_bread=true';
 // Même liste par défaut que le script proxyivshook (4 actifs, 8 en réserve)
@@ -39,7 +39,7 @@ const DEFAULTS: Settings = {
   follows: [],
   proxies: DEFAULT_PROXIES,
   proxyOn: true,
-  timeoutMs: 4000,
+  timeoutMs: 8000,
   fallback: true,
   hidden: { channels: [], categories: [], keywords: [] },
   warm: 0,
@@ -68,6 +68,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .then((raw) => {
         if (raw) {
           const saved = JSON.parse(raw) as Partial<Settings>;
+          // 4 s était trop court sur le réseau mobile : on passe à 8 s
+          if (saved.timeoutMs === 4000) saved.timeoutMs = 8000;
           setS({ ...DEFAULTS, ...saved, hidden: { ...DEFAULTS.hidden, ...saved.hidden } });
         }
       })

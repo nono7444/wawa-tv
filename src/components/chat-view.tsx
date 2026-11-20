@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 // Image native de React Native : la seule qui s'affiche au milieu d'un texte
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import { useAuth } from '@/lib/auth';
 
 import { useChat, type ChatMsg } from '@/lib/chat';
 import { useSettings } from '@/lib/store';
@@ -26,7 +28,9 @@ function Line({ m, size }: { m: ChatMsg; size: number }) {
 /** Chat en direct (lecture seule) avec défilement automatique, mis en pause quand on remonte. */
 export function ChatView({ channel, restartKey = 0 }: { channel: string; restartKey?: number }) {
   const { s } = useSettings();
-  const { messages, status } = useChat(channel, restartKey);
+  const { session } = useAuth();
+  const { messages, status, canSend, send } = useChat(channel, restartKey, session ? { login: session.login, token: session.access } : null);
+  const [draft, setDraft] = useState('');
   const list = useRef<FlatList<ChatMsg>>(null);
   const [follow, setFollow] = useState(true);
 
@@ -54,6 +58,26 @@ export function ChatView({ channel, restartKey = 0 }: { channel: string; restart
           <Text style={styles.resumeText}>Reprendre le défilement</Text>
         </Pressable>
       ) : null}
+      {canSend ? (
+        <View style={styles.inputRow}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Envoyer un message"
+            placeholderTextColor={C.textFaint}
+            style={styles.input}
+            returnKeyType="send"
+            maxLength={500}
+            onSubmitEditing={() => {
+              if (send(draft)) {
+                setDraft('');
+                setFollow(true);
+              }
+            }}
+            blurOnSubmit={false}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -64,5 +88,7 @@ const styles = StyleSheet.create({
   sys: { color: C.textFaint, fontStyle: 'italic', marginBottom: 4 },
   status: { color: C.textFaint, fontSize: 12, textAlign: 'center', paddingTop: 6 },
   resume: { position: 'absolute', bottom: 12, alignSelf: 'center', backgroundColor: C.accent, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 7 },
+  inputRow: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: C.border, padding: 8 },
+  input: { backgroundColor: C.surface, color: C.text, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, fontSize: 15 },
   resumeText: { color: '#fff', fontWeight: '600', fontSize: 13 },
 });

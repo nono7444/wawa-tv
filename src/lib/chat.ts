@@ -40,10 +40,13 @@ function splitEmotes(text: string, emotes: string): Part[] {
   return parts;
 }
 
-export function useChat(channel: string | null, restartKey = 0) {
+export type ChatAuth = { login: string; token: string } | null;
+
+export function useChat(channel: string | null, restartKey = 0, auth: ChatAuth = null) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [status, setStatus] = useState<'connecting' | 'open' | 'closed'>('connecting');
   const buffer = useRef<ChatMsg[]>([]);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (!channel) return;
@@ -64,10 +67,17 @@ export function useChat(channel: string | null, restartKey = 0) {
     const connect = () => {
       setStatus('connecting');
       ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+      wsRef.current = ws;
       ws.onopen = () => {
         ws?.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
-        ws?.send('PASS SCHMOOPIIE');
-        ws?.send(`NICK justinfan${Math.floor(10000 + Math.random() * 80000)}`);
+        // Connecté : avec ton compte (tu peux écrire). Sinon : anonyme, en lecture seule.
+        if (auth) {
+          ws?.send(`PASS oauth:${auth.token}`);
+          ws?.send(`NICK ${auth.login}`);
+        } else {
+          ws?.send('PASS SCHMOOPIIE');
+          ws?.send(`NICK justinfan${Math.floor(10000 + Math.random() * 80000)}`);
+        }
         ws?.send(`JOIN #${channel.toLowerCase()}`);
         setStatus('open');
         buffer.current.push({ id: `sys-${Date.now()}`, user: '', color: '', parts: [{ text: 'Bienvenue dans le chat !' }], system: true });
@@ -77,6 +87,11 @@ export function useChat(channel: string | null, restartKey = 0) {
           if (!line) continue;
           if (line.startsWith('PING')) {
             ws?.send('PONG :tmi.twitch.tv');
+            continue;
+          }
+          const notice = /NOTICE \S+ :(.*)$/.exec(line);
+          if (notice) {
+            buffer.current.push({ id: `n-${Date.now()}-${Math.random()}`, user: '', color: '', parts: [{ text: notice[1] }], system: true });
             continue;
           }
           const m = /^(?:@(\S+) )?:(\w+)!\S+ PRIVMSG #\S+ :(.*)$/.exec(line);
@@ -104,11 +119,21 @@ export function useChat(channel: string | null, restartKey = 0) {
 
     return () => {
       stopped = true;
+      wsRef.current = null;
       clearInterval(flush);
       if (retry) clearTimeout(retry);
       ws?.close();
     };
-  }, [channel, restartKey]);
+  }, [channel, restartKey, auth?.login, auth?.token]);
 
-  return { messages, status };
+  const send = (text: string) => {
+    const t = text.trim();
+    if (!t || !auth || !channel || wsRef.current?.readyState !== 1) return false;
+    wsRef.current.send(`PRIVMSG #${channel.toLowerCase()} :${t}`);
+    // Twitch ne renvoie pas nos propres messages : on les ajoute nous-mêmes
+    buffer.current.push({ id: `me-${Date.now()}`, user: auth.login, color: '#BF94FF', parts: [{ text: t }] });
+    return true;
+  };
+
+  return { messages, status, canSend: !!auth, send };
 }

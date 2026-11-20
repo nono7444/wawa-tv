@@ -11,17 +11,42 @@
       "bundleIdentifier": "lol.wawanono.wawatv",
       "supportsTablet": false,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
       "expo-router",
-      ["expo-splash-screen", { "backgroundColor": "#0E0B16", "image": "./assets/images/splash-icon.png", "imageWidth": 120 }],
-      ["expo-build-properties", { "ios": { "deploymentTarget": "16.4" } }],
-      ["expo-video", { "supportsBackgroundPlayback": true, "supportsPictureInPicture": true }],
-      "expo-screen-orientation"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0E0B16",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      "expo-screen-orientation",
+      "expo-secure-store"
     ],
-    "experiments": { "typedRoutes": false }
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }

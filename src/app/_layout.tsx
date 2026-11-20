@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { AuthProvider } from '@/lib/auth';
 import { SettingsProvider, useSettings } from '@/lib/store';
 import { C } from '@/lib/theme';
 
@@ -26,6 +27,7 @@ function Root() {
       <Stack.Screen name="category/[name]" options={{ headerShown: true, title: '', headerBackTitle: 'Retour' }} />
       <Stack.Screen name="multi" />
       <Stack.Screen name="proxies" options={{ headerShown: true, title: 'Proxys sans pubs', headerBackTitle: 'Réglages' }} />
+      <Stack.Screen name="login" options={{ headerShown: true, title: 'Compte Twitch', headerBackTitle: 'Réglages' }} />
       <Stack.Screen name="hidden" options={{ headerShown: true, title: 'Contenus masqués', headerBackTitle: 'Réglages' }} />
     </Stack>
   );
@@ -35,8 +37,10 @@ export default function Layout() {
   return (
     <ThemeProvider value={theme}>
       <SettingsProvider>
-        <StatusBar style="light" />
-        <Root />
+        <AuthProvider>
+          <StatusBar style="light" />
+          <Root />
+        </AuthProvider>
       </SettingsProvider>
     </ThemeProvider>
   );

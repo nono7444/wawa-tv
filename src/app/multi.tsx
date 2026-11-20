@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChatView } from '@/components/chat-view';
 import { TwitchPlayer } from '@/components/twitch-player';
+import { twitchFollows, useAuth } from '@/lib/auth';
 import { useSettings } from '@/lib/store';
 import { C, R } from '@/lib/theme';
 import { channels, type Channel } from '@/lib/twitch';
@@ -15,16 +16,18 @@ import { channels, type Channel } from '@/lib/twitch';
 export default function Multi() {
   useKeepAwake();
   const { s } = useSettings();
+  const { session, helix } = useAuth();
   const [live, setLive] = useState<Channel[]>([]);
   const [pick, setPick] = useState<string[]>([]);
   const [sound, setSound] = useState(0); // quel direct a le son
   const [chat, setChat] = useState(0); // quel chat est affiché
 
   useEffect(() => {
-    channels(s.follows)
+    (session ? twitchFollows(helix, session.userId).catch(() => [] as string[]) : Promise.resolve([] as string[]))
+      .then((tw) => channels([...new Set([...s.follows, ...tw])]))
       .then((r) => setLive(r.filter((c) => c.stream).sort((a, b) => (b.stream?.viewersCount ?? 0) - (a.stream?.viewersCount ?? 0))))
       .catch(() => {});
-  }, [s.follows]);
+  }, [s.follows, session, helix]);
 
   const ready = pick.length === 2;
 
