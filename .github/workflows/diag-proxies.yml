@@ -1,0 +1,24 @@
+name: Diagnostic proxys
+
+# Lancé à la main : teste chaque proxy avec et sans les en-têtes d'un navigateur sur twitch.tv
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Teste les proxys
+        run: |
+          CH=$(curl -s -H 'Client-ID: kimne78kx3ncx6brgo4mv6wki5h1ko' -H 'Content-Type: text/plain' https://gql.twitch.tv/gql -d '{"query":"query{streams(first:1){edges{node{broadcaster{login}}}}}"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['streams']['edges'][0]['node']['broadcaster']['login'])")
+          echo "Chaîne testée : $CH"
+          P='allow_source=true&allow_audio_only=true&fast_bread=true'
+          for host in eu.luminous.dev eu2.luminous.dev eu3.luminous.dev lb-eu5.cdn-perfprod.com lb-eu.cdn-perfprod.com lb-eu2.cdn-perfprod.com twitch-al.nadeko.net; do
+            u="https://$host/live/$CH?$P"
+            a=$(curl -s -m 10 -o a.txt -w '%{http_code}' "$u"); ha=$(head -c 7 a.txt | tr -d '\n')
+            b=$(curl -s -m 10 -o b.txt -w '%{http_code}' -H 'Origin: https://www.twitch.tv' -H 'Referer: https://www.twitch.tv/' -H 'User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' "$u"); hb=$(head -c 7 b.txt | tr -d '\n')
+            echo "$host | sans en-têtes: $a $ha | avec en-têtes: $b $hb"
+            echo "  extrait: $(head -c 160 b.txt | tr '\n' ' ')"
+          done
+          echo "--- 1re ligne de variante (avec en-têtes, dernier proxy OK) ---"
+          grep -m2 -v '^#' b.txt || true
